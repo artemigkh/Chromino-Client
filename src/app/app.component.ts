@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import {Chromino} from './game/Chromino';
+import {ChrominoGame} from './game/ChrominoGame';
 
 @Component({
   selector: 'app-root',
@@ -7,9 +7,9 @@ import {Chromino} from './game/Chromino';
   styleUrls: ['./app.component.scss']
 })
 export class AppComponent {
-  title = 'Chromino-Client';
+  title = 'ChrominoGame-Client';
 
   constructor() {
-    (new Chromino()).start();
+    (new ChrominoGame()).start();
   }
 }
