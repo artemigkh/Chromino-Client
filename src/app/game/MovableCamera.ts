@@ -1,8 +1,8 @@
 import {Camera, CameraStrategy, Engine, Vector} from 'excalibur';
 import {ChrominoGame} from './ChrominoGame';
-import {Draggable} from './Engine/Draggable';
+import {_Draggable} from './Engine/_Draggable';
 
-export class MovableCamera implements CameraStrategy<void>, Draggable {
+export class MovableCamera implements CameraStrategy<void>, _Draggable {
   target: void;
   dragStartPos: Vector;
   isActiveDragTarget = false;

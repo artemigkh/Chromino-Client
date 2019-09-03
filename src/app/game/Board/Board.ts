@@ -17,23 +17,18 @@ export class Board extends Actor {
     this.height = engine.canvasHeight;
     this.width = engine.canvasWidth;
 
-    Chromino.getAllChrominos().forEach(chromino => {
-      this.add(chromino);
-      this.scene.add(chromino);
-    });
-
-    this.add(new Actor(0, 0, 2000, 3, Color.Black));
-    this.add(new Actor(0, 0, 3, 2000, Color.Black));
-    for (let xt = -5; xt <= 5; xt++) {
-      for (let yt = -5; yt <= 5; yt++) {
-        const a = new Label('(' + String(xt) + ', ' + String(yt) + ')', xt * 50 + 25, yt * 50 - 25);
-        a.fontSize = 16;
-        a.baseAlign = BaseAlign.Middle;
-        a.textAlign = TextAlign.Center;
-        engine.mainScene.add(a);
-        a.setZIndex(3);
-      }
-    }
+    // this.add(new Actor(0, 0, 2000, 3, Color.Black));
+    // this.add(new Actor(0, 0, 3, 2000, Color.Black));
+    // for (let xt = -5; xt <= 5; xt++) {
+    //   for (let yt = -5; yt <= 5; yt++) {
+    //     const a = new Label('(' + String(xt) + ', ' + String(yt) + ')', xt * 50 + 25, yt * 50 - 25);
+    //     a.fontSize = 16;
+    //     a.baseAlign = BaseAlign.Middle;
+    //     a.textAlign = TextAlign.Center;
+    //     engine.mainScene.add(a);
+    //     a.setZIndex(3);
+    //   }
+    // }
   }
 
   registerPlacedPieceOnGrid(chromino: Chromino) {
@@ -48,31 +43,23 @@ export class Board extends Actor {
   }
 
   isPositionValid(chromino: Chromino): boolean {
+    let noDifferentColorContact = true;
     const colorCount = chromino.getChrominoSquares().reduce((colorContactCount: number, square: ChrominoSquare) => {
-      for (let dx = -1; dx <= 1; dx++) {
-        for (let dy = -1; dy <= 1; dy++) {
-          // if (dx + dy != -1 && dx + dy != 1) {
-          //   continue;
-          // }
-          const x = square.boardX + dx;
-          const y = square.boardY + dy;
-          if (this.grid.get(x, y) != null) {
-            // console.log(x, y, this.grid.get(x, y), square.color);
-          } else {
-            if (x == 1 && y == 0 && !chromino.body.collider.bounds.contains(new Vector(25, 25))) {
-              const grid = this.grid;
-            }
-            // console.log(x, y, this.grid);
-          }
-          if (!chromino.occupiesSquare(x, y) && Utils.colorsEqual(this.grid.get(x, y), square.color)) {
-            // console.log('was a match');
-            return ++colorContactCount;
+      [[-1, 0], [1, 0], [0, -1], [0, 1]].forEach(d => {
+        const x = square.boardX + d[0];
+        const y = square.boardY + d[1];
+        if (!chromino.occupiesSquare(x, y)) {
+          const colorOnGrid = this.grid.get(x, y);
+          if (Utils.colorsEqual(colorOnGrid, square.color)) {
+            colorContactCount++;
+          } else if (colorOnGrid != null) {
+            noDifferentColorContact = false;
           }
         }
-      }
+      });
       return colorContactCount;
     }, 0);
     console.log('matching Colors', colorCount);
-    return colorCount >= 2;
+    return colorCount >= 2 && noDifferentColorContact;
   }
 }

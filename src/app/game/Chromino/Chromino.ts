@@ -8,6 +8,8 @@ import {Constants} from '../Constants';
 import {Utils} from '../Utils';
 import {Draggable} from '../Engine/Draggable';
 import {InventorySlot} from '../Inventory/InventorySlot';
+import {PiecePlacement} from '../Engine/PiecePlacement';
+import {ChrominoColorMap} from './ChrominoColor';
 
 export class Chromino extends Actor implements Draggable {
   private static allChrominos: Chromino[] = [];
@@ -16,38 +18,46 @@ export class Chromino extends Actor implements Draggable {
   private chrominoSquares: ChrominoSquare[] = [];
   dragStartPos: Vector;
   isActiveDragTarget = false;
+  private gridAlignedPos: Vector;
   private placementShadow: PlacementShadow = null;
   placementStatus: Color = PlacementStatus.insufficientColorContact;
   inventorySlot: InventorySlot = null;
 
-  static getAllChrominos(): Chromino[] {
-    if (this.allChrominos.length == 0) {
-      Chromino.allChrominos = [
-        new Chromino(75, -25, 0, [Color.Red, Color.Blue, Color.Green]),
-        new Chromino(175, 175, Math.PI / 2, [Color.Blue, Color.Green, Color.Violet])
-      ];
-    }
-    return Chromino.allChrominos;
+  static fromPiecePlacementEvent(piecePlacement: PiecePlacement) {
+    console.log(piecePlacement.colors.map(c => ChrominoColorMap.get(c)));
+    console.log(ChrominoColorMap);
+    return new Chromino(
+      piecePlacement.x * Constants.SQUARE_SIZE + Constants.SQUARE_CENTER_OFFSET,
+      piecePlacement.y * Constants.SQUARE_SIZE - Constants.SQUARE_CENTER_OFFSET,
+      piecePlacement.rotation * Math.PI / 180,
+      piecePlacement.colors.map(c => ChrominoColorMap.get(c)),
+      PlacementStatus.placed
+    );
   }
 
-  constructor(x: number, y: number, rotation: number, colors: Color[]) {
+  constructor(x: number, y: number, rotation: number, colors: Color[], placementStatus: Color) {
     super(x, y, Constants.SQUARE_SIZE * 3, Constants.SQUARE_SIZE);
     this.colors = colors;
+    console.log(this.colors);
     this.rotation = rotation;
+    this.placementStatus = placementStatus;
   }
 
   public onInitialize(engine: ChrominoGame) {
     super.onInitialize(engine);
     this.add(new ChrominoDisplay(this.colors, engine.chrominoOverlayTx));
-    this.setZIndex(4);
+    this.gridAlignedPos = this.pos;
     this.placementShadow = new PlacementShadow(this);
-
-    // engine.input.pointers.primary.on('up', event => {
-    //   if ((this.dragStartObjectPos == null || this.dragStartObjectPos.equals(this.pos))
-    //     && this.body.collider.bounds.contains(event.target.lastWorldPos) && this.placementStatus != PlacementStatus.placed) {
-    //     this.rotation += Math.PI / 2;
-    //   }
-    // });
+    if (this.placementStatus == PlacementStatus.inInventory) {
+      this.setZIndex(4);
+    } else {
+      this.setZIndex(2);
+      if (this.placementStatus == PlacementStatus.placed) {
+        console.log('initializing placed piece');
+        this.updateChrominoSquares();
+        engine.board.registerPlacedPieceOnGrid(this);
+      }
+    }
   }
 
   getChrominoSquares(): ChrominoSquare[] {
@@ -70,9 +80,9 @@ export class Chromino extends Actor implements Draggable {
   }
 
   onDragging(engine: ChrominoGame, dragDelta: Vector) {
+    this.updateChrominoSquares();
     if (this.placementStatus != PlacementStatus.inInventory) {
       this.pos = this.dragStartPos.add(dragDelta);
-      this.updateChrominoSquares();
       if (engine.board.isPositionObstructed(this)) {
         this.placementStatus = PlacementStatus.obstructed;
       } else if (engine.board.isPositionValid(this)) {
@@ -86,26 +96,31 @@ export class Chromino extends Actor implements Draggable {
   }
 
   onDragEnd(engine: ChrominoGame) {
-    this.scene.remove(this.placementShadow);
-
     if (engine.inventory.containsCursorWorldPos(engine.input.pointers.primary.lastWorldPos)) {
       if (this.inventorySlot == null) {
         this.pos = this.dragStartPos;
       } else {
+        this.scene.remove(this.placementShadow);
+        this.rotation = Math.PI / 2;
         this.pos = this.inventorySlot.getWorldPos();
         this.placementStatus = PlacementStatus.inInventory;
       }
     } else {
-      this.pos = Utils.getGridAlignedPos(this.pos);
-
       this.setZIndex(2);
-      this.updateChrominoSquares();
-
+      if ((this.placementStatus == PlacementStatus.insufficientColorContact ||
+        this.placementStatus == PlacementStatus.obstructed)
+        && this.dragStartPos.equals(this.pos)) {
+        this.rotation += Math.PI / 2;
+      }
       if (this.placementStatus != PlacementStatus.obstructed) {
-        engine.board.registerPlacedPieceOnGrid(this);
+        // engine.board.registerPlacedPieceOnGrid(this);
         if (this.placementStatus == PlacementStatus.canPlace) {
+          this.scene.remove(this.placementShadow);
+          this.pos = Utils.getGridAlignedPos(this.pos);
+          this.updateChrominoSquares();
           engine.board.registerPlacedPieceOnGrid(this);
           this.placementStatus = PlacementStatus.placed;
+          this.inventorySlot.notifyPlaced();
           console.log('placed!');
         }
       } else {

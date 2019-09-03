@@ -1,0 +1,65 @@
+openapi: 3.0.0
+
+info:
+  version: 1.0.0
+  title: Chromino Server
+
+tags:
+  - name: gameFlow
+    description: handlers for gameflow
+
+paths:
+  /piecePlacement:
+    post:
+      operationId: piecePlacement
+      tags:
+        - gameFlow
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PiecePlacement'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PiecePlacement'
+
+
+components:
+  schemas:
+    ##### Permissions #####
+    PiecePlacement:
+      type: object
+      required:
+        - playerId
+        - colors
+        - rotation
+      properties:
+        playerId:
+          type: integer
+          description: The numerical ID of the player placing the piece
+        colors:
+          type: array
+          items:
+            type: string
+            enum:
+              - BLUE
+              - RED
+              - GREEN
+              - YELLOW
+          minItems: 3
+          maxItems: 3
+          description:
+            An array of length 3 containing the colors in order from left
+            to right when the piece is at rotation = 0
+        rotation:
+          type: integer
+          minimum: 0
+          maximum: 360
+          multipleOf: 90
+          description:
+            The rotation of the game piece. Must be a multiple of 90
+            and between 0 and 360 inclusive

@@ -9,7 +9,7 @@ import {ChrominoGame} from './game/ChrominoGame';
 export class AppComponent {
   title = 'ChrominoGame-Client';
 
-  constructor() {
-    (new ChrominoGame()).start();
+  constructor(chrominoGame: ChrominoGame) {
+    chrominoGame.start();
   }
 }
